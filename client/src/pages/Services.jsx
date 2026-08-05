@@ -1,4 +1,4 @@
-import { Link } from 'react-router';
+import { Link } from 'react-router-dom';
 import {
   Ship, Boxes, GitBranch, ShieldCheck, Radar, CheckCircle2, ArrowRight,
   ChevronRight, Package

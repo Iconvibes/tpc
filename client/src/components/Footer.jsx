@@ -1,4 +1,4 @@
-import { Link } from 'react-router';
+import { Link } from 'react-router-dom';
 import { MapPin, Phone, Mail, MessageCircle, Truck } from 'lucide-react';
 import Logo from './Logo.jsx';
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router';
+import { Link } from 'react-router-dom';
 import { Plane, Ship, Truck, ArrowRight } from 'lucide-react';
 import { trackShipment } from '../api.js';
 

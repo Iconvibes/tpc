@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router';
+import { Link } from 'react-router-dom';
 import { Lock, Mail, LogIn, KeyRound } from 'lucide-react';
 import { authClient } from '../auth-client.js';
 import { adminSetupStatus } from '../api.js';

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Ship, Boxes, GitBranch, ShieldCheck, Radar, ArrowRight, Search,
   CheckCircle2, Headset, Clock4, Star, ArrowRightLeft, ChevronRight

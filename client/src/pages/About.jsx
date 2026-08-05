@@ -1,4 +1,4 @@
-import { Link } from 'react-router';
+import { Link } from 'react-router-dom';
 import { ChevronRight, Compass, Eye, HeartHandshake, ArrowRight, ShieldCheck } from 'lucide-react';
 import Reveal from '../components/Reveal.jsx';
 import Counter from '../components/Counter.jsx';

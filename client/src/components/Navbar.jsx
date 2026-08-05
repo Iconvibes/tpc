@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { NavLink, useLocation } from 'react-router';
+import { NavLink, useLocation } from 'react-router-dom';
 import { Menu, X, FileText } from 'lucide-react';
 import Logo from './Logo.jsx';
 import { useQuote } from '../context/QuoteContext.jsx';

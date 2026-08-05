@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router';
+import { useSearchParams } from 'react-router-dom';
 import {
   Search, ChevronRight, MapPin, Clock4, Package, Boxes, Weight, Route,
   SearchX, AlertTriangle, Truck, Ship, Plane
