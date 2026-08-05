@@ -1,0 +1,12 @@
+node_modules/
+dist/
+server/data/*.db
+server/data/*.db-shm
+server/data/*.db-wal
+*.log
+*.pid
+*.bak
+.freebuff/
+.env
+.DS_Store
+server/.env
