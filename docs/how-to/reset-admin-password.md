@@ -1,7 +1,7 @@
 # How to: Reset the admin password
 
 > **Diátaxis type:** How-to (task)
-> **Goal:** regain access to `/admin` when the password is lost — or move off the default.
+> **Goal:** regain access to `/admin` when the password is lost — or rotate it.
 
 There are three ways, from easiest to most surgical.
 
@@ -12,21 +12,23 @@ There are three ways, from easiest to most surgical.
 3. Enter the current password, a new one (at least 8 characters), and confirm.
 4. Save. You'll be signed out; sign in with the new password.
 
-This is also the recommended way to move off the default `tpc-admin-2026` password, and it
-automatically makes the login screen hide the "demo credentials" hint.
+## Option 2 — Environment (works at any time)
 
-## Option 2 — Environment seed (before first boot only)
+The admin account is seeded from `ADMIN_EMAIL` / `ADMIN_PASSWORD` in `server/.env`. There is
+**no default password** — if `ADMIN_PASSWORD` is left unset, the server generates a random
+one-time password and prints it to the log on first boot.
 
-The admin is seeded on first boot from `ADMIN_EMAIL` / `ADMIN_PASSWORD` in `server/.env`.
-If **no admin user exists yet**, just set these and start the server:
+Setting `ADMIN_PASSWORD` works at any time, not just first boot: `seedAdmin` re-asserts it
+on every boot, so it overwrites whatever password the account currently has:
 
 ```ini
 ADMIN_EMAIL=ops@tpclogistics.com
 ADMIN_PASSWORD=<something-strong>
 ```
 
-> This does **not** update an existing user — `seedAdmin` only inserts when the email isn't
-> found. To change an existing password from scratch, use Option 3.
+Restart the server and sign in with the new password. (This is the easiest path when the
+filesystem is ephemeral — e.g. Render free tier — since Settings changes don't survive a
+redeploy.)
 
 ## Option 3 — Direct database update (locked out)
 

@@ -54,7 +54,7 @@ goal. There are four kinds of document here, and they answer four different ques
 ### Explanation
 
 - [How authentication works](explanation/how-authentication-works.md) — Better Auth, sessions,
-  cookies, roles, and the demo-password probe.
+  cookies, roles, and the security model.
 - [The tracking pipeline](explanation/the-tracking-pipeline.md) — how a status update flows
   from the admin console to the public tracking page and an email inbox.
 - [The "Port Ledger" design system](explanation/the-port-ledger-design-system.md) — the
@@ -77,7 +77,8 @@ the explanations *after* you've seen the system work — they will make more sen
 
 - Commands run from the repository root unless a block says otherwise (e.g. `# in server/`).
 - The API runs on port `5000` by default; the client dev server on `5173`.
-- The default admin account is `admin@tpclogistics.com` / `tpc-admin-2026` on a fresh install —
-  change it after signing in.
+- The admin account email is `admin@tpclogistics.com`. Its password comes from
+  `ADMIN_PASSWORD` (set it in production); if unset, a random one-time password is generated
+  and logged on first boot — there is no default password.
 - Demo tracking IDs you can try: `TPC-2026-1042`, `TPC-2026-1077`, `TPC-2026-1081`,
   `TPC-2026-1055`, `TPC-2026-1086`, `TPC-2026-1090`.

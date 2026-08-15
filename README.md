@@ -54,13 +54,16 @@ endpoints are rate-limited (60 requests / 15 min / IP, tunable via `RATE_LIMIT_M
 
 Visit `/admin` and sign in. On first run the server seeds one admin account:
 
-- **Email:** `admin@tpclogistics.com`
-- **Password:** `tpc-admin-2026`
+- **Email:** `admin@tpclogistics.com` (set `ADMIN_EMAIL` to override)
+- **Password:** whatever `ADMIN_PASSWORD` is set to — there is **no default**. If
+  `ADMIN_PASSWORD` is unset, a strong random one-time password is generated and printed to
+  the server log at creation time.
 
-> Set `ADMIN_EMAIL` / `ADMIN_PASSWORD` environment variables before the first run to override,
-> and change the password after signing in (Admin → Settings). Auth is powered by
-> Better Auth: bcrypt-style hashed passwords, SQLite-backed httpOnly session cookies, and
-> built-in rate limiting.
+> `ADMIN_PASSWORD` is authoritative: when set, the server re-asserts it on every boot (so
+> changing it in env rotates the password reliably, even with an ephemeral filesystem). You
+> can also rotate it from the console (Admin → Settings). Auth is powered by Better Auth:
+> hashed passwords, SQLite-backed httpOnly session cookies (24h expiry), CSRF origin
+> checks, and layered rate limiting on sign-in.
 
 Every status update made in the console appears instantly on the public tracking page.
 
@@ -126,7 +129,6 @@ CSRF origin check accepts requests from your real domain, and `COOKIE_SECURE=tru
 | GET    | `/api/auth/get-session`                | Current session                        |
 | POST   | `/api/auth/change-password`            | Update admin password                  |
 | GET    | `/api/auth/ok`                         | Auth health check                      |
-| GET    | `/api/admin/setup-status`              | Is the default seed password in use?   |
 | GET    | `/api/admin/messages`                  | List contact messages                  |
 | POST   | `/api/admin/messages/:id/toggle`       | Mark handled / new                     |
 | DELETE | `/api/admin/messages/:id`              | Delete a message                       |

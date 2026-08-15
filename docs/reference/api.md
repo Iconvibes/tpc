@@ -31,6 +31,8 @@ Unexpected server errors return a generic `Internal server error.` when `NODE_EN
 - A logged-in non-admin gets `403` (only the `admin` role may use these routes).
 - Public write routes (`/api/contact`, `/api/quote`) are rate-limited to 60 requests per
   15 minutes per IP by default (429 when exceeded).
+- `POST /api/auth/sign-in/email` is rate-limited to 10 attempts per 15 minutes per IP, on
+  top of Better Auth's own per-IP throttle on sign-in (3 per 10 s).
 
 ---
 
@@ -112,14 +114,17 @@ Mounted at `/api/auth/*`. Standard Better Auth endpoints, including:
 
 ### `POST /api/auth/sign-in/email`
 
+**Rate-limited** (10 attempts / 15 min / IP, plus Better Auth's built-in 3 per 10 s).
+
 ```json
-{ "email": "admin@tpclogistics.com", "password": "tpc-admin-2026" }
+{ "email": "admin@tpclogistics.com", "password": "your-password" }
 ```
 
 | Status | Response |
 | --- | --- |
 | `200` | Session token + user; sets the `better-auth.session_token` cookie |
 | `401` | Bad credentials (Better Auth's own error body) |
+| `429` | Too many attempts (express-rate-limit) |
 
 Requires a matching `Origin` header in the browser (CSRF protection; the dev client sends it
 via the Vite proxy automatically).
@@ -137,16 +142,6 @@ Returns `{ ok: true }` if Better Auth is reachable (used by the client to check 
 ## Admin console
 
 All of the following require a valid admin session cookie.
-
-### `GET /api/admin/setup-status`
-
-Public (no session needed). Returns whether the **default** seeded password
-(`ADMIN_PASSWORD` env or `tpc-admin-2026`) still works for the admin account. The login
-screen uses this to show/hide the demo-credentials hint.
-
-```json
-{ "defaultPasswordInUse": true }
-```
 
 ### Inbox — messages
 
@@ -249,12 +244,11 @@ reason in `error`).
 | GET | `/api/track/:trackingId` | – | – |
 | POST | `/api/contact` | – | ✅ |
 | POST | `/api/quote` | – | ✅ |
-| POST | `/api/auth/sign-in/email` | – | (Better Auth built-in) |
+| POST | `/api/auth/sign-in/email` | – | ✅ (10 per 15 min + Better Auth built-in) |
 | POST | `/api/auth/sign-out` | session | – |
 | GET | `/api/auth/get-session` | – | – |
 | POST | `/api/auth/change-password` | session | – |
 | GET | `/api/auth/ok` | – | – |
-| GET | `/api/admin/setup-status` | – | – |
 | GET | `/api/admin/messages` | admin | – |
 | POST | `/api/admin/messages/:id/toggle` | admin | – |
 | DELETE | `/api/admin/messages/:id` | admin | – |

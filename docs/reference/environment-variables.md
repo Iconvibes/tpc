@@ -42,10 +42,13 @@ with that email exists yet.
 
 ### `ADMIN_PASSWORD`
 
-Default: `tpc-admin-2026` (dev only!)
+Default: unset (a random password is generated on first boot)
 
-Initial password for that account. **Change it after first login** (Settings) or set it
-before first boot. A live site with the default password is trivially compromised.
+Password for the admin account. **There is no default password.** When set, it is
+authoritative: `seedAdmin` re-asserts it on every boot, so changing it in env rotates the
+admin password reliably (even when the filesystem is ephemeral, as on Render's free tier).
+When unset, the server generates a strong random one-time password on first boot and prints
+it to the log — after that the account keeps whatever password it was given.
 
 ---
 
@@ -127,8 +130,8 @@ Window length in milliseconds.
 | `BETTER_AUTH_SECRET` | — | Signs session cookies (required in production) |
 | `BETTER_AUTH_URL` | `http://localhost:5173` | Public origin for CSRF trust |
 | `COOKIE_SECURE` | unset | `true` behind HTTPS |
-| `ADMIN_EMAIL` | `admin@tpclogistics.com` | Seed admin email (first boot only) |
-| `ADMIN_PASSWORD` | `tpc-admin-2026` | Seed admin password (first boot only) |
+| `ADMIN_EMAIL` | `admin@tpclogistics.com` | Admin email (first boot only) |
+| `ADMIN_PASSWORD` | unset | Admin password (authoritative when set; random one-time password otherwise) |
 | `API_PORT` | `5000` | Express listen port |
 | `NODE_ENV` | unset | `production` toggles error/log behavior |
 | `DB_PATH` | `server/data/tpc.db` | SQLite file location |

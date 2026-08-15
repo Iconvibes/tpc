@@ -57,8 +57,13 @@ one in production. Generate a random value:
 openssl rand -base64 32
 ```
 
-Paste the output into the file. For this tutorial the other values can stay at their
-defaults.
+Paste the output into the file. Also set an `ADMIN_PASSWORD` you'll use to sign in a couple
+of steps from now (there is **no default password** — leave it blank and the server will
+generate a random one and print it to the log instead):
+
+```ini
+ADMIN_PASSWORD=something-strong-you-choose
+```
 
 ## Step 3 — Run both servers
 
@@ -85,13 +90,12 @@ with a "Live Waybill" card on the hero showing a real seeded shipment (for examp
 Visit **http://localhost:5173/admin**. You'll see a login screen.
 
 - **Email:** `admin@tpclogistics.com`
-- **Password:** `tpc-admin-2026`
+- **Password:** the `ADMIN_PASSWORD` you set in Step 2
 
-The login screen shows a hint saying these are the demo credentials — that hint disappears
-automatically once you change the password (we won't do that in this tutorial; see the
-[how-to guide](../how-to/reset-admin-password.md) if you want to).
-
-Sign in. You land on the dashboard with live statistics and recent shipments.
+Sign in. You land on the dashboard with live statistics and recent shipments. (If you left
+`ADMIN_PASSWORD` blank, the server printed a generated one-time password to its log on
+first boot — look for the line starting with "seeded admin user with a generated one-time
+password".)
 
 ## Step 5 — Create a shipment
 

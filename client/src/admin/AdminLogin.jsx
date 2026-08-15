@@ -1,21 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Lock, Mail, LogIn, KeyRound } from 'lucide-react';
 import { authClient } from '../auth-client.js';
-import { adminSetupStatus } from '../api.js';
 
 export default function AdminLogin() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const [showDemo, setShowDemo] = useState(false);
-
-  useEffect(() => {
-    adminSetupStatus()
-      .then((s) => setShowDemo(s.defaultPasswordInUse))
-      .catch(() => {});
-  }, []);
 
   const submit = async (e) => {
     e.preventDefault();
@@ -73,14 +65,6 @@ export default function AdminLogin() {
             <LogIn size={17} /> {busy ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
-
-        {showDemo && (
-          <div className="admin-login__hint">
-            <strong>Demo credentials</strong>
-            <span>Email: <code>admin@tpclogistics.com</code> · Password: <code>tpc-admin-2026</code></span>
-            <span className="admin-login__change">Change it in Settings after signing in.</span>
-          </div>
-        )}
 
         <Link to="/" className="admin-login__back">← Back to website</Link>
       </div>

@@ -40,13 +40,6 @@ async function adminRequest(path, options = {}) {
   return data;
 }
 
-// Whether the seeded default admin password is still in use (drives the
-// demo-credentials hint on the login screen). Public — reveals nothing
-// beyond "the default password still works".
-export function adminSetupStatus() {
-  return request('/api/admin/setup-status');
-}
-
 export const adminMessages = {
   list: () => adminRequest('/api/admin/messages'),
   toggle: (id) => adminRequest(`/api/admin/messages/${id}/toggle`, { method: 'POST' }),

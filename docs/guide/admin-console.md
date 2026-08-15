@@ -17,11 +17,6 @@ The console lives at **`/admin`** on the website address (for example
 3. You'll land on the **Overview** page. Use the **Logout** button at the top right when
    you're finished — always log out when you leave a shared computer.
 
-If you see a box showing demo credentials on the sign-in screen, that means the console is
-still using the default password and **someone should change it** (see
-[Changing your password](#changing-your-password) below). Never leave the console on the
-default password.
-
 > Forgot your password? Ask whoever set up the console to reset it — you can't reset it
 > yourself from this screen.
 

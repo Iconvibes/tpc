@@ -3,13 +3,15 @@ import compression from 'compression';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { existsSync } from 'node:fs';
+import { randomBytes } from 'node:crypto';
 import { toNodeHandler, fromNodeHeaders } from 'better-auth/node';
 import { auth } from './auth.js';
 import { db, findShipment, shipmentToJson, type ShipmentRow } from './db.js';
 import { sendShipmentUpdateEmail } from './notify.js';
 import { logger, requestLogger } from './utils/logger.js';
 import { asyncHandler, errorHandler, notFound } from './middleware/error-handler.js';
-import { publicLimiter } from './middleware/rate-limit.js';
+import { publicLimiter, signInLimiter } from './middleware/rate-limit.js';
+import { securityHeaders } from './middleware/security-headers.js';
 import { UnauthorizedError, ForbiddenError, NotFoundError } from './utils/errors.js';
 import {
   contactSchema, quoteSchema, createShipmentSchema, updateShipmentSchema,
@@ -22,8 +24,18 @@ export const app = express();
 /* ------------------------- global middleware stack ------------------------ */
 /* Better Auth MUST be mounted BEFORE express.json() — it reads raw bodies. */
 
+// Trust Render's (and local dev's) proxy hop so req.ip reflects the real client
+// IP — this is what the rate limiters key on. Without it every visitor shares
+// the proxy's IP and the limiters would be effectively global.
+app.set('trust proxy', 1);
+
 app.use(requestLogger);
 app.use(compression());
+app.use(securityHeaders);
+
+// Login endpoint gets a dedicated brute-force limiter on top of Better Auth's
+// own per-IP throttle (3 per 10 s). Mounted before the auth catch-all below.
+app.post('/api/auth/sign-in/email', signInLimiter, toNodeHandler(auth));
 app.all('/api/auth/*', toNodeHandler(auth));
 app.use(express.json({ limit: '100kb' }));
 // Guard against requests without a JSON body (req.body is undefined otherwise)
@@ -274,50 +286,72 @@ app.get('/api/admin/shipments/:id/notifications', requireAuth, asyncHandler((req
   res.json(rows);
 }));
 
-/* ---------------------- demo-credentials status -------------------------
-   Tells the login screen whether the seeded default password still works,
-   so it can hide the demo hint once the admin changes it. Uses a real
-   sign-in attempt (no cookie is set server-side by this API call). */
-
-app.get('/api/admin/setup-status', asyncHandler(async (_req, res) => {
-  const email = (process.env.ADMIN_EMAIL || 'admin@tpclogistics.com').trim().toLowerCase();
-  const password = process.env.ADMIN_PASSWORD || 'tpc-admin-2026';
-  try {
-    const { token } = await auth.api.signInEmail({ body: { email, password } });
-    // The probe creates a real session — discard it so the table doesn't grow.
-    if (token) db.prepare('DELETE FROM session WHERE token = ?').run(token);
-    res.json({ defaultPasswordInUse: true });
-  } catch {
-    res.json({ defaultPasswordInUse: false });
-  }
-}));
-
 /* --------------------------- seed admin user ---------------------------- */
+
+const adminEmail = (): string =>
+  (process.env.ADMIN_EMAIL || 'admin@tpclogistics.com').trim().toLowerCase();
+
+/** The ADMIN_PASSWORD env value, or undefined when unset. */
+const adminPasswordFromEnv = (): string | undefined =>
+  process.env.ADMIN_PASSWORD?.trim() || undefined;
+
+/** Strong one-time password used when ADMIN_PASSWORD is not configured. */
+const randomPassword = (): string => randomBytes(18).toString('base64url');
+
+interface AuthContext {
+  generateId: (opts: { model: string; size: number }) => string;
+  password: { hash: (password: string) => Promise<string> };
+  internalAdapter: {
+    createUser: (user: Record<string, unknown>) => Promise<unknown>;
+    createAccount: (account: Record<string, unknown>) => Promise<unknown>;
+  };
+}
 
 /**
  * Ensures the admin account exists. Uses Better Auth's internal adapter
  * directly (with its own password hashing) because public sign-up is
  * disabled — signUpEmail cannot be used to create the seed account.
+ *
+ * There is deliberately NO hardcoded default password:
+ * - If ADMIN_PASSWORD is set, it is authoritative — re-asserted on every boot
+ *   so rotation via env actually takes effect (the free-tier filesystem is
+ *   ephemeral, so Settings changes don't survive a redeploy).
+ * - If it is unset and the account is created, a strong random one-time
+ *   password is generated and logged once, at creation time only.
  */
 export async function seedAdmin(): Promise<void> {
-  const email = (process.env.ADMIN_EMAIL || 'admin@tpclogistics.com').trim().toLowerCase();
-  const password = process.env.ADMIN_PASSWORD || 'tpc-admin-2026';
+  const email = adminEmail();
+  const envPassword = adminPasswordFromEnv();
+  const ctx = (await auth.$context) as unknown as AuthContext;
 
   const existing = db.prepare('SELECT id, role FROM user WHERE email = ?').get(email) as { id: string; role: string } | undefined;
+
   if (existing) {
     if (existing.role !== 'admin') db.prepare("UPDATE user SET role = 'admin' WHERE id = ?").run(existing.id);
+    if (envPassword) {
+      const hash = await ctx.password.hash(envPassword);
+      const result = db
+        .prepare("UPDATE account SET password = ? WHERE userId = ? AND providerId = 'credential'")
+        .run(hash, existing.id);
+      // User exists but has no credential account row (legacy DB) — create one.
+      if (result.changes === 0) {
+        const now = new Date();
+        await ctx.internalAdapter.createAccount({
+          id: ctx.generateId({ model: 'account', size: 32 }),
+          userId: existing.id,
+          accountId: existing.id,
+          providerId: 'credential',
+          password: hash,
+          createdAt: now,
+          updatedAt: now
+        });
+      }
+      logger.info({ email }, 'admin password synced from ADMIN_PASSWORD');
+    }
     return;
   }
 
-  const ctx = (await auth.$context) as unknown as {
-    generateId: (opts: { model: string; size: number }) => string;
-    password: { hash: (password: string) => Promise<string> };
-    internalAdapter: {
-      createUser: (user: Record<string, unknown>) => Promise<unknown>;
-      createAccount: (account: Record<string, unknown>) => Promise<unknown>;
-    };
-  };
-
+  const password = envPassword || randomPassword();
   const userId = ctx.generateId({ model: 'user', size: 32 });
   const now = new Date();
   await ctx.internalAdapter.createUser({
@@ -338,7 +372,14 @@ export async function seedAdmin(): Promise<void> {
     createdAt: now,
     updatedAt: now
   });
-  logger.info({ email }, 'seeded admin user (default password active — change it in Settings)');
+  if (envPassword) {
+    logger.info({ email }, 'seeded admin user from ADMIN_PASSWORD');
+  } else {
+    logger.warn(
+      { email, password },
+      'seeded admin user with a generated one-time password — set ADMIN_PASSWORD to control it'
+    );
+  }
 }
 
 /* --------------------------- serve built client -------------------------- */

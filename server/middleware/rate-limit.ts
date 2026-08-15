@@ -12,3 +12,16 @@ export const publicLimiter = rateLimit({
   legacyHeaders: false,
   message: { error: 'Too many requests from this address — please try again in a few minutes.' }
 });
+
+/**
+ * Brute-force guard for the admin login endpoint. Better Auth applies its own
+ * per-IP throttle on sign-in (3 per 10 s by default); this adds a long
+ * cumulative window so an attacker can't keep hammering the password all day.
+ */
+export const signInLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  limit: 10, // 10 attempts per window per IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many sign-in attempts — please try again in 15 minutes.' }
+});

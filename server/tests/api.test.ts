@@ -15,6 +15,7 @@ process.env.ADMIN_PASSWORD = 'tpc-admin-2026';
 
 const { app, seedAdmin } = await import('../app.js');
 const { db } = await import('../db.js');
+const { signInLimiter } = await import('../middleware/rate-limit.js');
 
 let agent: ReturnType<typeof request.agent>;
 
@@ -36,6 +37,18 @@ test('GET /api/health returns ok', async () => {
   const res = await request(app).get('/api/health');
   assert.equal(res.status, 200);
   assert.equal(res.body.ok, true);
+});
+
+test('security headers are set on every response', async () => {
+  const res = await request(app).get('/api/health');
+  assert.equal(res.headers['x-content-type-options'], 'nosniff');
+  assert.equal(res.headers['x-frame-options'], 'DENY');
+  assert.equal(res.headers['referrer-policy'], 'strict-origin-when-cross-origin');
+  const csp = String(res.headers['content-security-policy']);
+  assert.match(csp, /default-src 'self'/);
+  assert.match(csp, /script-src 'self'/);
+  assert.match(csp, /frame-ancestors 'none'/);
+  assert.match(csp, /frame-src https:\/\/www\.google\.com/);
 });
 
 /* ------------------------------ tracking ------------------------------- */
@@ -165,10 +178,28 @@ test('sign-in with good credentials grants admin access', async () => {
   assert.ok(Array.isArray(list.body));
 });
 
-test('/api/admin/setup-status reports default password in use', async () => {
+test('the setup-status endpoint no longer exists (no password oracle)', async () => {
   const res = await request(app).get('/api/admin/setup-status');
-  assert.equal(res.status, 200);
-  assert.equal(res.body.defaultPasswordInUse, true);
+  assert.equal(res.status, 404);
+});
+
+test('sign-in is rate-limited against brute force', async () => {
+  // Clear the dedicated sign-in limiter's counter (earlier tests may have
+  // consumed slots); Better Auth's own per-IP throttle can't be reset, which
+  // is fine — either layer blocking proves the point.
+  for (const ip of ['127.0.0.1', '::ffff:127.0.0.1', '::1']) signInLimiter.resetKey(ip);
+
+  const results = await Promise.all(
+    Array.from({ length: 11 }, (_, i) =>
+      request(app)
+        .post('/api/auth/sign-in/email')
+        .set('Origin', 'http://localhost:5173')
+        .send({ email: 'admin@tpclogistics.com', password: `wrong-password-${i}` })
+    )
+  );
+  // Rapid-fire wrong-password attempts must be throttled by at least one of
+  // the two layers (Better Auth's 3 per 10 s and/or the 10 per 15 min limiter).
+  assert.ok(results.some((r) => r.status === 429), 'expected at least one 429');
 });
 
 /* ----------------------------- inbox admin ----------------------------- */

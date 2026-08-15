@@ -10,9 +10,16 @@ self-service registration — `disableSignUp: true` in the Better Auth config, w
 verified blocked during migration. The account is created by `seedAdmin` on the server's
 first boot from the `ADMIN_EMAIL` / `ADMIN_PASSWORD` environment variables.
 
+There is deliberately **no default password**. When `ADMIN_PASSWORD` is set it is
+authoritative — `seedAdmin` re-asserts it on every boot, so rotating it in env actually
+rotates the admin password (important because the free-tier filesystem is ephemeral and
+Settings changes don't survive a redeploy). When `ADMIN_PASSWORD` is unset and the account
+is created, a strong random one-time password is generated and printed to the server log
+once, at creation time.
+
 So authentication is intentionally minimal: one user, one role, one password. The machinery
 underneath is still real, and worth understanding because it explains the login screen's
-quirks (the demo hint, the origin check, the settings page).
+behavior (the origin check, the settings page).
 
 ## The auth library: Better Auth
 
@@ -25,8 +32,11 @@ TPC uses [Better Auth](https://better-auth.com) with two plugins configured in
 
 Better Auth owns four database tables (`user`, `session`, `account`, `verification`) and is
 mounted into Express at `/api/auth/*` via `toNodeHandler` **before** `express.json()` (it
-reads raw request bodies). It also ships its own rate limiting (100 requests / 60 s by
-default in this config).
+reads raw request bodies). It ships its own rate limiting (60 requests / 60 s in this
+config), and applies a stricter built-in rule to high-risk paths: sign-in, sign-up and
+change-password are capped at 3 requests per 10 seconds per IP. On top of that, Express
+mounts a dedicated limiter on `POST /api/auth/sign-in/email` — 10 attempts per 15 minutes
+per IP — so a brute-force campaign can't hammer the password endpoint all day.
 
 ## The session cookie
 
@@ -34,7 +44,8 @@ When you sign in, Better Auth:
 
 1. Looks up the `user` row by email.
 2. Verifies the password against the hash in the matching `account` row.
-3. Creates a `session` row and returns its `token`.
+3. Creates a `session` row (24-hour expiry, refreshed at most every 8 hours) and returns its
+   `token`.
 4. Sets the `better-auth.session_token` cookie (httpOnly, same-site, `Secure` when
    `COOKIE_SECURE=true`) on the browser.
 
@@ -66,22 +77,18 @@ The password is never stored. The `account` table stores Better Auth's scrypt ha
 to create the user and account with its own hashing function — it does not hand-roll a hash,
 so the seeded password verifies identically to one set later in Settings.
 
-This is also why a "reset" is a database operation, not a config change after first boot:
-see [Reset the admin password](../how-to/reset-admin-password.md).
+Because `ADMIN_PASSWORD` is re-asserted on every boot, resetting the admin password is as
+simple as changing it in env and restarting — no database surgery needed. If the DB has been
+destroyed entirely, the server re-seeds the account from env on next boot. See
+[Reset the admin password](../how-to/reset-admin-password.md).
 
-## The demo-password hint
+## No demo credentials, anywhere
 
-The login screen shows "default credentials still in use" guidance until the admin changes
-the password. Mechanically, the client calls `GET /api/admin/setup-status` (unauthenticated)
-on load. The server:
-
-1. Reads the *current* `ADMIN_EMAIL`/`ADMIN_PASSWORD` (or their defaults).
-2. Attempts a real `signInEmail` with them.
-3. Deletes the probe's session row (it must not leak sessions into the table).
-4. Returns `{ defaultPasswordInUse: true | false }`.
-
-The hint disappears automatically the moment the password no longer matches the default —
-no manual flag to flip.
+There is no default password and no "demo credentials" hint on the login screen. An earlier
+version exposed `GET /api/admin/setup-status`, which anonymously probed whether the default
+password still worked — a gift to anyone trying to break in. It was removed: the login page
+reveals nothing except the email and password fields, and the only way in is a real sign-in
+against the actual password hash.
 
 ## Why it's built this way
 

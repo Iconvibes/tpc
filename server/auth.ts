@@ -17,10 +17,19 @@ export const auth = betterAuth({
     disableSignUp: true
   },
   plugins: [admin()],
+  // Sessions expire after 24h (default is 7 days) and are refreshed at most
+  // every 8h — a stolen cookie is useful for a much shorter window.
+  session: {
+    expiresIn: 60 * 60 * 24,
+    updateAge: 60 * 60 * 8
+  },
   rateLimit: {
     enabled: true,
     window: 60,
-    max: 100
+    max: 60
+    // Note: Better Auth additionally applies its own stricter rules to
+    // high-risk paths — sign-in/sign-up/change-password are capped at 3
+    // requests per 10 seconds per IP on top of the values above.
   },
   trustedOrigins: [
     // Dev: the Vite dev server (proxy target for /api/*).
@@ -29,6 +38,12 @@ export const auth = betterAuth({
     ...(process.env.API_PORT ? [`http://localhost:${process.env.API_PORT}`] : [])
   ],
   advanced: {
-    useSecureCookies: process.env.COOKIE_SECURE === 'true'
+    useSecureCookies: process.env.COOKIE_SECURE === 'true',
+    ipAddress: {
+      // Render terminates TLS and sets X-Forwarded-For to the real client IP.
+      // Resolving it keeps the rate limiters per-IP — without it Better Auth
+      // falls back to a single shared bucket any attacker could exhaust.
+      ipAddressHeaders: ['x-forwarded-for']
+    }
   }
 });
