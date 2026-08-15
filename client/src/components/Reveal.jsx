@@ -1,29 +1,23 @@
-import { useEffect, useRef } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
 
-export default function Reveal({ children, delay = 0, className = '' }) {
-  const ref = useRef(null);
+const EASE = [0.16, 1, 0.3, 1];
 
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            el.classList.add('in');
-            observer.unobserve(el);
-          }
-        });
-      },
-      { threshold: 0.12 }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-
+/**
+ * Reveal — scroll-triggered entrance (fade + rise + de-blur).
+ * Same API as before (children, delay, className) so every existing
+ * call site keeps working, now powered by Framer Motion.
+ */
+export default function Reveal({ children, delay = 0, className = '', y = 32 }) {
+  const reduce = useReducedMotion();
   return (
-    <div ref={ref} className={`reveal ${className}`} style={delay ? { transitionDelay: `${delay}ms` } : undefined}>
+    <motion.div
+      className={`reveal ${className}`}
+      initial={reduce ? { opacity: 1 } : { opacity: 0, y, filter: 'blur(8px)' }}
+      whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+      viewport={{ once: true, margin: '-8% 0px -8% 0px' }}
+      transition={{ duration: reduce ? 0 : 0.85, delay, ease: EASE }}
+    >
       {children}
-    </div>
+    </motion.div>
   );
 }

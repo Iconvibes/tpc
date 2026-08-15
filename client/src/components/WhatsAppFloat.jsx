@@ -10,7 +10,8 @@ export default function WhatsAppFloat() {
       aria-label="Chat with TPC Logistics on WhatsApp"
       title="Chat with us on WhatsApp"
     >
-      <MessageCircle size={28} />
+      <span className="wa-float__pulse" aria-hidden="true" />
+      <MessageCircle size={26} />
     </a>
   );
 }

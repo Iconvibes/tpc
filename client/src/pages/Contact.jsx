@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-  ChevronRight, MapPin, Phone, Mail, MessageCircle, Send, CheckCircle2, Clock4
+  MapPin, Phone, Mail, MessageCircle, Send, CheckCircle2, Clock4, ArrowUpRight
 } from 'lucide-react';
 import Reveal from '../components/Reveal.jsx';
 import { sendContact } from '../api.js';
@@ -9,6 +9,14 @@ const PHONE = '+234 802 255 0250';
 const PHONE_LINK = 'tel:+2348022550250';
 const EMAIL = 'tpclogisticscompany@gmail.com';
 const WHATSAPP = 'https://wa.me/2348022550250';
+
+const INFO = [
+  { n: '01', icon: MapPin, label: 'VISIT US', value: '9b, Atiba Close, Onipetesi Estate, Ikeja, Lagos.', href: null },
+  { n: '02', icon: Phone, label: 'CALL US', value: PHONE, sub: 'Mon–Sat, 8am–7pm', href: PHONE_LINK },
+  { n: '03', icon: Mail, label: 'EMAIL US', value: EMAIL, href: `mailto:${EMAIL}` },
+  { n: '04', icon: MessageCircle, label: 'WHATSAPP', value: 'Chat with us now', href: WHATSAPP },
+  { n: '05', icon: Clock4, label: 'RESPONSE TIME', value: 'Quotes within 24 hours · Support 24/7 for active shipments', href: null }
+];
 
 const initial = { name: '', email: '', phone: '', subject: '', message: '' };
 
@@ -42,11 +50,13 @@ export default function Contact() {
   return (
     <>
       <section className="page-hero">
-        <div className="container">
+        <div className="container page-hero__inner">
           <Reveal>
-            <span className="crumb">Home <ChevronRight size={13} /> Contact</span>
-            <h1>Get in touch with our team</h1>
-            <p>
+            <span className="crumb">HOME <span>/</span> CONTACT</span>
+            <h1>
+              GET IN TOUCH<span className="hero__caret" />
+            </h1>
+            <p className="page-hero__sub">
               Questions, quotes or a cargo to move — call, email, WhatsApp or send a message.
               We respond within one business day.
             </p>
@@ -57,98 +67,77 @@ export default function Contact() {
       <section className="section" style={{ paddingTop: 40 }}>
         <div className="container contact-grid">
           <div className="contact-cards">
-            <Reveal>
-              <div className="card contact-card">
-                <span className="ico"><MapPin size={22} /></span>
-                <div>
-                  <h3>Visit Us</h3>
-                  <p>TPC Logistics Company<br />9b, Atiba Close, Onipetesi Estate,<br />Ikeja, Lagos.</p>
-                </div>
-              </div>
-            </Reveal>
-            <Reveal delay={70}>
-              <div className="card contact-card">
-                <span className="ico"><Phone size={22} /></span>
-                <div>
-                  <h3>Call Us</h3>
-                  <a href={PHONE_LINK}>{PHONE}</a>
-                  <p style={{ fontSize: '0.82rem', color: 'var(--muted)' }}>Mon–Sat, 8am–7pm</p>
-                </div>
-              </div>
-            </Reveal>
-            <Reveal delay={140}>
-              <div className="card contact-card">
-                <span className="ico"><Mail size={22} /></span>
-                <div>
-                  <h3>Email Us</h3>
-                  <a href={`mailto:${EMAIL}`}>{EMAIL}</a>
-                </div>
-              </div>
-            </Reveal>
-            <Reveal delay={210}>
-              <div className="card contact-card contact-card--wa">
-                <span className="ico"><MessageCircle size={22} /></span>
-                <div>
-                  <h3>WhatsApp</h3>
-                  <a href={WHATSAPP} target="_blank" rel="noreferrer">Chat with us now</a>
-                </div>
-              </div>
-            </Reveal>
-            <Reveal delay={280}>
-              <div className="card contact-card">
-                <span className="ico"><Clock4 size={22} /></span>
-                <div>
-                  <h3>Response Time</h3>
-                  <p>Quotes within 24 hours · Support 24/7 for active shipments</p>
-                </div>
-              </div>
-            </Reveal>
+            {INFO.map((c, i) => {
+              const Icon = c.icon;
+              const inner = (
+                <>
+                  <span className="contact-card__num">{c.n}</span>
+                  <span className="contact-card__ico"><Icon size={22} /></span>
+                  <div>
+                    <span className="contact-card__label">{c.label}</span>
+                    <p>{c.value}</p>
+                    {c.sub && <em>{c.sub}</em>}
+                  </div>
+                  {c.href && <ArrowUpRight size={18} className="contact-card__arrow" />}
+                </>
+              );
+              return (
+                <Reveal key={c.n} delay={i * 60}>
+                  {c.href ? (
+                    <a className="contact-card" href={c.href} target={c.href.startsWith('http') ? '_blank' : undefined} rel="noreferrer">
+                      {inner}
+                    </a>
+                  ) : (
+                    <div className="contact-card">{inner}</div>
+                  )}
+                </Reveal>
+              );
+            })}
           </div>
 
           <Reveal delay={120}>
-            <div className="card form-card">
+            <div className="form-card">
+              <span className="form-card__kicker">MESSAGE-01</span>
+              <h3>Send us a message</h3>
+              <p>Tell us what you need — a quote, a question or support with an active shipment.</p>
               {sent ? (
                 <div className="form-success">
                   <span className="tick"><CheckCircle2 size={36} /></span>
                   <h4>Message sent!</h4>
                   <p>Thanks for reaching out — our team will reply within one business day.</p>
-                  <button className="btn btn--dark" onClick={() => setSent(false)}>Send another message</button>
+                  <button className="btn btn--yellow" onClick={() => setSent(false)}>Send another message <ArrowUpRight size={16} /></button>
                 </div>
               ) : (
-                <>
-                  <h3>Send us a message</h3>
-                  <p>Tell us what you need — a quote, a question or support with an active shipment.</p>
-                  <form onSubmit={submit} noValidate>
-                    <div className="form-grid">
-                      <div className="field">
-                        <label htmlFor="c-name">Full name *</label>
-                        <input id="c-name" value={form.name} onChange={set('name')} placeholder="Your name" />
-                      </div>
-                      <div className="field">
-                        <label htmlFor="c-email">Email *</label>
-                        <input id="c-email" type="email" value={form.email} onChange={set('email')} placeholder="you@company.com" />
-                      </div>
-                      <div className="field">
-                        <label htmlFor="c-phone">Phone</label>
-                        <input id="c-phone" value={form.phone} onChange={set('phone')} placeholder="+234 ..." />
-                      </div>
-                      <div className="field">
-                        <label htmlFor="c-subject">Subject</label>
-                        <input id="c-subject" value={form.subject} onChange={set('subject')} placeholder="e.g. Freight quote" />
-                      </div>
-                      <div className="field field--full">
-                        <label htmlFor="c-message">Message *</label>
-                        <textarea id="c-message" value={form.message} onChange={set('message')} placeholder="How can we help?" />
-                      </div>
-                      {error && <p className="field--full" style={{ color: 'var(--red)', fontSize: '0.85rem', fontWeight: 600 }}>{error}</p>}
-                      <div className="field--full">
-                        <button className="btn btn--primary btn--block" disabled={sending}>
-                          <Send size={17} /> {sending ? 'Sending...' : 'Send Message'}
-                        </button>
-                      </div>
+                <form onSubmit={submit} noValidate>
+                  <div className="form-grid">
+                    <div className="field">
+                      <label htmlFor="c-name">Full name *</label>
+                      <input id="c-name" value={form.name} onChange={set('name')} placeholder="Your name" />
                     </div>
-                  </form>
-                </>
+                    <div className="field">
+                      <label htmlFor="c-email">Email *</label>
+                      <input id="c-email" type="email" value={form.email} onChange={set('email')} placeholder="you@company.com" />
+                    </div>
+                    <div className="field">
+                      <label htmlFor="c-phone">Phone</label>
+                      <input id="c-phone" value={form.phone} onChange={set('phone')} placeholder="+234 ..." />
+                    </div>
+                    <div className="field">
+                      <label htmlFor="c-subject">Subject</label>
+                      <input id="c-subject" value={form.subject} onChange={set('subject')} placeholder="e.g. Freight quote" />
+                    </div>
+                    <div className="field field--full">
+                      <label htmlFor="c-message">Message *</label>
+                      <textarea id="c-message" value={form.message} onChange={set('message')} placeholder="How can we help?" />
+                    </div>
+                    {error && <p className="err field--full">{error}</p>}
+                    <div className="field--full">
+                      <button className="btn btn--yellow btn--block" disabled={sending}>
+                        <Send size={17} /> {sending ? 'Sending...' : 'Send Message'}
+                      </button>
+                    </div>
+                  </div>
+                </form>
               )}
             </div>
           </Reveal>

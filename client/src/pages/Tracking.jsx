@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
-  Search, ChevronRight, MapPin, Clock4, Package, Boxes, Weight, Route,
-  SearchX, AlertTriangle, Truck, Ship, Plane
+  Search, MapPin, Clock4, Package, Boxes, Weight, Route,
+  SearchX, AlertTriangle, Truck, Ship, Plane, ArrowUpRight
 } from 'lucide-react';
 import Reveal from '../components/Reveal.jsx';
+import LiveMap from '../components/LiveMap.jsx';
 import { trackShipment } from '../api.js';
 
-const SAMPLE_IDS = ['TPC-2026-1042', 'TPC-2026-1077', 'TPC-2026-1081', 'TPC-2026-1055', 'TPC-2026-1090'];
+const SAMPLE_IDS = ['TPC-2026-1077', 'TPC-2026-1081', 'TPC-2026-1055', 'TPC-2026-1086', 'TPC-2026-1090'];
 const MODE_ICON = { Sea: Ship, Air: Plane, Road: Truck };
 const statusKey = (s) => s.replace(/\s+/g, '');
 
@@ -55,25 +56,30 @@ export default function Tracking() {
   return (
     <>
       <section className="page-hero">
-        <div className="container track-hero">
+        <div className="container page-hero__inner track-hero">
           <Reveal>
-            <span className="crumb">Home <ChevronRight size={13} /> Tracking</span>
-            <h1>Track your shipment in real time</h1>
-            <p>
+            <span className="crumb">HOME <span>/</span> TRACKING</span>
+            <h1>
+              TRACK YOUR CARGO<span className="hero__caret" />
+            </h1>
+            <p className="page-hero__sub">
               Enter your tracking ID to see live status, current location and every milestone —
               from registration to final delivery.
             </p>
+
             <form className="track-search-big" onSubmit={onSubmit}>
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Enter tracking ID — e.g. TPC-2026-1042"
                 aria-label="Tracking ID"
+                spellCheck="false"
               />
-              <button className="btn btn--primary" type="submit" disabled={loading}>
+              <button className="btn btn--yellow" type="submit" disabled={loading}>
                 <Search size={18} /> {loading ? 'Tracking...' : 'Track'}
               </button>
             </form>
+
             <div className="track-hints">
               {SAMPLE_IDS.map((id) => (
                 <button key={id} className="track-hint" onClick={() => { setQuery(id); lookup(id); }}>
@@ -81,9 +87,7 @@ export default function Tracking() {
                 </button>
               ))}
             </div>
-            <p style={{ marginTop: 16, fontSize: '0.85rem', color: '#8fa4c0' }}>
-              Try one of the demo IDs above to see tracking in action.
-            </p>
+            <p className="track-note">Try one of the demo IDs above to see tracking in action.</p>
           </Reveal>
         </div>
       </section>
@@ -99,12 +103,12 @@ export default function Tracking() {
           {!loading && error && (
             <div className="track-feedback">
               <Reveal>
-                <div className="card track-error">
-                  <span className="ico"><SearchX size={30} /></span>
+                <div className="track-error">
+                  <span className="track-error__ico"><SearchX size={30} /></span>
                   <h3>Shipment not found</h3>
                   <p>{error}</p>
-                  <button className="btn btn--dark" onClick={() => setQuery('TPC-2026-1042')}>
-                    Try a demo tracking ID
+                  <button className="btn btn--yellow" onClick={() => setQuery('TPC-2026-1077')}>
+                    Try a demo tracking ID <ArrowUpRight size={16} />
                   </button>
                 </div>
               </Reveal>
@@ -114,10 +118,8 @@ export default function Tracking() {
           {!loading && !error && !shipment && searched && (
             <div className="track-feedback">
               <Reveal>
-                <div className="card track-error">
-                  <span className="ico" style={{ color: 'var(--brand-deep)', background: 'rgba(245,166,35,0.12)' }}>
-                    <AlertTriangle size={30} />
-                  </span>
+                <div className="track-error">
+                  <span className="track-error__ico track-error__ico--warn"><AlertTriangle size={30} /></span>
                   <h3>Enter a tracking ID</h3>
                   <p>Type your tracking ID above or pick one of the demo IDs to explore.</p>
                 </div>
@@ -128,22 +130,21 @@ export default function Tracking() {
           {!loading && shipment && (
             <div className="track-result">
               <Reveal>
-                <div className="card result-card">
+                <div className="result-card">
                   <div className="result-card__head">
                     <div>
+                      <span className="result-card__kicker">SHIPMENT {shipment.trackingId}</span>
                       <h3>{shipment.cargo}</h3>
-                      <span style={{ color: 'var(--muted)', fontSize: '0.9rem' }}>{shipment.customer}</span>
+                      <span className="result-card__customer">{shipment.customer}</span>
                     </div>
                     <span className="id">{shipment.trackingId}</span>
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 22, flexWrap: 'wrap' }}>
+                  <div className="result-card__meta">
                     <span className={`status-pill status-pill--${statusKey(shipment.status)}`}>
                       <span className="dot" /> {shipment.status}
                     </span>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.85rem', color: 'var(--muted)', fontWeight: 700 }}>
-                      <Clock4 size={15} /> {shipment.eta}
-                    </span>
+                    <span className="result-card__eta"><Clock4 size={15} /> {shipment.eta}</span>
                   </div>
 
                   <div className="detail-grid">
@@ -171,8 +172,11 @@ export default function Tracking() {
               </Reveal>
 
               <Reveal delay={120}>
-                <div className="card timeline">
-                  <h3>Shipment journey</h3>
+                <div className="timeline">
+                  <div className="timeline__head">
+                    <h3>Shipment journey</h3>
+                    <span className="mono">{shipment.events.length} MILESTONES</span>
+                  </div>
                   {shipment.events.map((ev, i) => {
                     const isLast = i === shipment.events.length - 1;
                     const isDelivered = shipment.status === 'Delivered';
@@ -191,6 +195,28 @@ export default function Tracking() {
               </Reveal>
             </div>
           )}
+        </div>
+      </section>
+
+      {/* live network strip */}
+      <section className="section track-section" style={{ paddingTop: 0 }}>
+        <div className="container">
+          <Reveal>
+            <div className="section-head section-head--center">
+              <span className="eyebrow">TRACK-04 · NETWORK</span>
+              <h2>Our live network</h2>
+              <p>Animated units move along active TPC corridors in real time.</p>
+            </div>
+          </Reveal>
+          <Reveal delay={120}>
+            <div className="map-frame">
+              <div className="map-frame__top">
+                <span><i className="map-frame__live-dot" /> LIVE NETWORK</span>
+                <span className="mono">LOS · ACC · DXB · LHR · SHA · JFK</span>
+              </div>
+              <LiveMap height={420} />
+            </div>
+          </Reveal>
         </div>
       </section>
     </>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { Menu, X, FileText } from 'lucide-react';
+import { Menu, X, ArrowUpRight } from 'lucide-react';
 import Logo from './Logo.jsx';
 import { useQuote } from '../context/QuoteContext.jsx';
 
@@ -19,16 +19,21 @@ export default function Navbar() {
   const location = useLocation();
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 20);
+    const onScroll = () => setScrolled(window.scrollY > 24);
     onScroll();
-    window.addEventListener('scroll', onScroll);
+    window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
   useEffect(() => setOpen(false), [location.pathname]);
 
+  useEffect(() => {
+    document.body.style.overflow = open ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [open]);
+
   return (
-    <header className="nav" style={scrolled ? { background: 'rgba(7, 21, 39, 0.97)' } : undefined}>
+    <header className={`nav ${scrolled ? 'nav--scrolled' : ''}`}>
       <div className="container nav__inner">
         <Logo />
 
@@ -45,8 +50,8 @@ export default function Navbar() {
         </nav>
 
         <div className="nav__cta">
-          <button className="btn btn--primary" onClick={openQuote} style={{ padding: '12px 22px' }}>
-            <FileText size={17} /> Get a Quote
+          <button className="btn btn--primary" onClick={openQuote}>
+            Get a Quote
           </button>
           <button
             className="nav__burger"
@@ -59,15 +64,19 @@ export default function Navbar() {
         </div>
       </div>
 
-      <div className={`mobile-menu ${open ? 'open' : ''}`}>
-        {LINKS.map((l) => (
-          <NavLink key={l.to} to={l.to} end={l.to === '/'} className={({ isActive }) => (isActive ? 'active' : '')}>
-            {l.label}
-          </NavLink>
-        ))}
-        <button className="btn btn--primary" onClick={openQuote}>
-          <FileText size={17} /> Get a Quote
-        </button>
+      <div className={`mobile-menu ${open ? 'open' : ''}`} aria-hidden={!open}>
+        <div className="mobile-menu__inner">
+          <p className="mobile-menu__eyebrow">MENU — TPC LOGISTICS</p>
+          {LINKS.map((l, i) => (
+            <NavLink key={l.to} to={l.to} end={l.to === '/'} className={({ isActive }) => (isActive ? 'active' : '')}>
+              <span>0{i + 1}</span> {l.label}
+            </NavLink>
+          ))}
+          <button className="btn btn--primary" onClick={openQuote}>
+            Get a Quote <ArrowUpRight size={17} />
+          </button>
+          <p className="mobile-menu__foot">Ship Smarter. Deliver Faster. — Ikeja, Lagos</p>
+        </div>
       </div>
     </header>
   );

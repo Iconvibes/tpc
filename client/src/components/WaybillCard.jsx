@@ -69,10 +69,11 @@ export default function WaybillCard({ fallbackId = 'TPC-2026-1077' }) {
 
   return (
     <div className="waybill">
+      <div className="waybill__sheen" aria-hidden="true" />
       <div className="waybill__head">
-        <span className="waybill__brand">TPC<em> Logistics</em></span>
+        <span className="waybill__brand">TPC<em> LOGISTICS</em></span>
         <span className="waybill__doc">
-          Air Waybill<br />No. {shipment.trackingId}
+          AIR WAYBILL<br />No. {shipment.trackingId}
         </span>
       </div>
 
@@ -83,7 +84,7 @@ export default function WaybillCard({ fallbackId = 'TPC-2026-1077' }) {
         </div>
         <div className="waybill__line">
           <ModeIcon size={22} />
-          <span>{live ? 'Live' : 'Direct'}</span>
+          <span>{live ? 'LIVE' : 'DIRECT'}</span>
         </div>
         <div className="waybill__port waybill__port--right">
           <b>{portCode(shipment.destination)}</b>

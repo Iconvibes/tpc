@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
+import FX from './components/FX.jsx';
 import Navbar from './components/Navbar.jsx';
 import Footer from './components/Footer.jsx';
 import WhatsAppFloat from './components/WhatsAppFloat.jsx';
@@ -55,6 +56,7 @@ function Shell() {
 export default function App() {
   return (
     <QuoteProvider>
+      <FX />
       <ScrollToTop />
       <Shell />
     </QuoteProvider>
