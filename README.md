@@ -96,7 +96,7 @@ Open http://localhost:5173
 ## Tests
 
 ```bash
-npm test --workspace=server  # 21 integration tests against an isolated temp DB
+npm test --workspace=server  # 23 integration tests against an isolated temp DB
 ```
 
 ## Production
@@ -108,6 +108,40 @@ npm start          # Express serves the API + built client on :5000
 
 Set `BETTER_AUTH_URL` to your public origin (e.g. `https://tpc.example.com`) so Better Auth's
 CSRF origin check accepts requests from your real domain, and `COOKIE_SECURE=true` behind HTTPS.
+
+## Running on Render's free tier
+
+This project is deployed as a Render **Web Service** on the free instance type, which has two
+behaviors worth knowing about:
+
+- **Idle spin-down:** the service sleeps after **15 minutes without inbound traffic**, and
+  the first request after that pays a ~30–60 second cold start (Render shows a loading page
+  while it wakes).
+- **Ephemeral filesystem:** the local SQLite database (`server/data/tpc.db`) is **wiped on
+  every restart, redeploy, and spin-down**. On boot the server re-creates the schema,
+  re-seeds the demo shipments, and re-seeds the admin account from `ADMIN_EMAIL` /
+  `ADMIN_PASSWORD` — so data written at runtime (contact messages, quotes, new shipments)
+  is not durable on the free tier.
+
+### Keep-alive (UptimeRobot)
+
+To stop the spin-down entirely, a free [UptimeRobot](https://uptimerobot.com) monitor pings
+the site **every 5 minutes** — well inside Render's 15-minute idle window, so the service
+stays warm and visitors never hit a cold start.
+
+Setup (one monitor, ~3 minutes):
+
+1. Create a free UptimeRobot account (no payment method required).
+2. Add an **HTTP(s)** monitor:
+   - **URL:** `https://<your-site>/api/health`
+   - **Interval:** every 5 minutes
+   - **Alert contacts:** email (Telegram is also free if you prefer push)
+3. The monitor doubles as a downtime alert — you'll get an email if the site ever fails to
+   respond.
+
+With the service kept awake, the database survives until the next redeploy; it is still not
+durable beyond that (the free tier has no persistent disk). If this site ever becomes real
+production, move it to a paid instance type (persistent disk) or a managed database.
 
 ## API
 
