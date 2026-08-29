@@ -387,8 +387,6 @@ export async function seedAdmin(): Promise<void> {
 const dist = [
   join(__dirname, '..', '..', 'client', 'dist'), // client/dist/ from compiled server/dist/
   join(__dirname, '..', 'client', 'dist'),        // client/dist/ from source server/
-  join(__dirname, '..', '..', 'dist'),             // root dist/ from compiled server/dist/
-  join(__dirname, '..', 'dist')                    // root dist/ from source server/
 ].find((candidate) => existsSync(candidate));
 if (dist) {
   app.use(express.static(dist));
