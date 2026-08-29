@@ -24,7 +24,7 @@ export const app = express();
 /* ------------------------- global middleware stack ------------------------ */
 /* Better Auth MUST be mounted BEFORE express.json() — it reads raw bodies. */
 
-// Trust Render's (and local dev's) proxy hop so req.ip reflects the real client
+// Trust Vercel's (and local dev's) proxy hop so req.ip reflects the real client
 // IP — this is what the rate limiters key on. Without it every visitor shares
 // the proxy's IP and the limiters would be effectively global.
 app.set('trust proxy', 1);
@@ -95,10 +95,7 @@ app.post(
     db.prepare(
       `INSERT INTO quotes (name, company, email, phone, service, origin, destination, weight, note)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    ).run(
-      name, company || null, email, phone || null, service || null,
-      origin || null, destination || null, weight || null, note || null
-    );
+    ).run(name, company || null, email, phone || null, service || null, origin || null, destination || null, weight || null, note || null);
     res.status(201).json({ ok: true, message: 'Quote request received — expect a tailored quote within 24 hours.' });
   })
 );
@@ -314,8 +311,7 @@ interface AuthContext {
  *
  * There is deliberately NO hardcoded default password:
  * - If ADMIN_PASSWORD is set, it is authoritative — re-asserted on every boot
- *   so rotation via env actually takes effect (the free-tier filesystem is
- *   ephemeral, so Settings changes don't survive a redeploy).
+ *   so rotation via env actually takes effect.
  * - If it is unset and the account is created, a strong random one-time
  *   password is generated and logged once, at creation time only.
  */
@@ -341,6 +337,7 @@ export async function seedAdmin(): Promise<void> {
           userId: existing.id,
           accountId: existing.id,
           providerId: 'credential',
+          issuer: 'local:credential',
           password: hash,
           createdAt: now,
           updatedAt: now
@@ -368,6 +365,7 @@ export async function seedAdmin(): Promise<void> {
     userId,
     accountId: userId,
     providerId: 'credential',
+    issuer: 'local:credential',
     password: await ctx.password.hash(password),
     createdAt: now,
     updatedAt: now

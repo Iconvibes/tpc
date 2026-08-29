@@ -32,6 +32,6 @@ seedAdmin()
     process.on('SIGTERM', () => shutdown('SIGTERM'));
   })
   .catch((err: unknown) => {
-    logger.error({ err: String(err) }, 'failed to seed admin — exiting');
+    logger.error({ err: String(err) }, 'failed to boot — exiting');
     process.exit(1);
   });

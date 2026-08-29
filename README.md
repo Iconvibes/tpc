@@ -109,39 +109,60 @@ npm start          # Express serves the API + built client on :5000
 Set `BETTER_AUTH_URL` to your public origin (e.g. `https://tpc.example.com`) so Better Auth's
 CSRF origin check accepts requests from your real domain, and `COOKIE_SECURE=true` behind HTTPS.
 
-## Running on Render's free tier
+## Deploying to Vercel
 
-This project is deployed as a Render **Web Service** on the free instance type, which has two
-behaviors worth knowing about:
+The app runs on [Vercel](https://vercel.com) as a single deployable unit: a serverless
+function wraps the Express app (API + Better Auth), and Vercel serves the built client as
+a static site with SPA fallback.
 
-- **Idle spin-down:** the service sleeps after **15 minutes without inbound traffic**, and
-  the first request after that pays a ~30–60 second cold start (Render shows a loading page
-  while it wakes).
-- **Ephemeral filesystem:** the local SQLite database (`server/data/tpc.db`) is **wiped on
-  every restart, redeploy, and spin-down**. On boot the server re-creates the schema,
-  re-seeds the demo shipments, and re-seeds the admin account from `ADMIN_EMAIL` /
-  `ADMIN_PASSWORD` — so data written at runtime (contact messages, quotes, new shipments)
-  is not durable on the free tier.
+### Quick deploy
 
-### Keep-alive (UptimeRobot)
+1. Push your repo to GitHub/GitLab/Bitbucket.
+2. Go to [vercel.com/new](https://vercel.com/new) → Import your repository.
+3. Vercel auto-detects the framework — click **Deploy** (no config changes needed).
+4. After the first deploy, open **Settings → Environment Variables** and add:
 
-To stop the spin-down entirely, a free [UptimeRobot](https://uptimerobot.com) monitor pings
-the site **every 5 minutes** — well inside Render's 15-minute idle window, so the service
-stays warm and visitors never hit a cold start.
+| Variable | Value | Notes |
+| --- | --- | --- |
+| `BETTER_AUTH_SECRET` | *(random string)* | Generate with `openssl rand -base64 32` |
+| `BETTER_AUTH_URL` | `https://your-project.vercel.app` | Your Vercel production domain |
+| `ADMIN_PASSWORD` | *(strong password)* | Authoritative — re-asserted on every cold start |
+| `COOKIE_SECURE` | `true` | Required behind HTTPS |
 
-Setup (one monitor, ~3 minutes):
+5. Trigger a redeploy from the Vercel dashboard (or push to main).
 
-1. Create a free UptimeRobot account (no payment method required).
-2. Add an **HTTP(s)** monitor:
-   - **URL:** `https://<your-site>/api/health`
-   - **Interval:** every 5 minutes
-   - **Alert contacts:** email (Telegram is also free if you prefer push)
-3. The monitor doubles as a downtime alert — you'll get an email if the site ever fails to
-   respond.
+### What happens on Vercel
 
-With the service kept awake, the database survives until the next redeploy; it is still not
-durable beyond that (the free tier has no persistent disk). If this site ever becomes real
-production, move it to a paid instance type (persistent disk) or a managed database.
+Vercel's filesystem is **ephemeral** — the SQLite database resets on every cold start.
+On boot the server re-creates the schema, re-seeds the demo shipments, and re-seeds
+the admin account from `ADMIN_PASSWORD`. This is the same behavior as Render's free tier.
+
+### Architecture on Vercel
+
+```
+┌─────────────────────────────────────────────┐
+│  Vercel Edge Network                        │
+│                                             │
+│  /api/*  →  serverless function (server/api.ts)
+│            ┌──────────────────────────┐     │
+│            │ Express app              │     │
+│            │  ├── Better Auth (db)    │     │
+│            │  ├── Business queries    │────→│ SQLite (ephemeral, re-seeded)
+│            │  └── Email via Resend    │────→│ Resend API
+│            └──────────────────────────┘     │
+│                                             │
+│  /*      →  static files (client/dist)      │
+│            React SPA with client-side routing│
+└─────────────────────────────────────────────┘
+```
+
+### Local development
+
+```bash
+npm install
+cp server/.env.example server/.env   # edit BETTER_AUTH_SECRET, ADMIN_PASSWORD
+npm run dev                           # API on :5000, client on :5173
+```
 
 ## API
 
@@ -176,8 +197,10 @@ production, move it to a paid instance type (persistent disk) or a managed datab
 | POST   | `/api/admin/shipments/:id/events`      | Add status event (updates public page) |
 | DELETE | `/api/admin/shipments/:id`             | Delete shipment                        |
 
-The SQLite database lives at `server/data/tpc.db` (auto-created; Better Auth tables added by
-`npm run setup --workspace=server`). Delete it to re-seed demo shipments.
+### Data storage
+
+- **Local dev:** everything lives in `server/data/tpc.db` (auto-created, delete to re-seed).
+- **Vercel:** same SQLite file, ephemeral — re-seeded on every cold start from env vars.
 
 ## Demo tracking IDs
 

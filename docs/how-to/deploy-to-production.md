@@ -7,6 +7,10 @@ The app is a single deployable unit: the Express server both serves the API and 
 client from `client/dist`. You don't need a separate static host or a database server —
 SQLite is a file.
 
+> **Easiest option:** Deploy to [Vercel](https://vercel.com) — see the
+> [README](../../README.md#deploying-to-vercel) for a 5-minute setup.
+> The instructions below are for self-hosted deployments on a Linux VM.
+
 ## Before you start
 
 - A Linux VM (this guide assumes Debian/Ubuntu) or any host you can run Node on.

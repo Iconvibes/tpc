@@ -79,8 +79,7 @@ db.exec(`
     created_at TEXT DEFAULT (datetime('now'))
   );
 
-  /* --------- Better Auth tables (kept in sync with the better-auth CLI) ---------
-     Creating them here makes a fresh DB fully self-contained — no CLI step needed. */
+  /* --------- Better Auth tables (kept in sync with the better-auth CLI) --------- */
   CREATE TABLE IF NOT EXISTS "user" (
     "id" text not null primary key,
     "name" text not null,
@@ -109,6 +108,7 @@ db.exec(`
     "id" text not null primary key,
     "accountId" text not null,
     "providerId" text not null,
+    "issuer" text not null default 'local:credential',
     "userId" text not null references "user" ("id") on delete cascade,
     "accessToken" text,
     "refreshToken" text,
@@ -144,6 +144,7 @@ ensureColumn('messages', 'handled', 'handled INTEGER NOT NULL DEFAULT 0');
 ensureColumn('messages', 'handled_at', 'handled_at TEXT');
 ensureColumn('quotes', 'handled', 'handled INTEGER NOT NULL DEFAULT 0');
 ensureColumn('quotes', 'handled_at', 'handled_at TEXT');
+ensureColumn('account', 'issuer', "issuer TEXT NOT NULL DEFAULT 'local:credential'");
 
 // Rebuild shipments without the legacy created_by column (it referenced the
 // old admin_users table that Better Auth replaces). We use legacy_alter_table
@@ -180,10 +181,7 @@ if (tableCols('shipments').includes('created_by')) {
   console.log('🗄️  Migrated shipments table (dropped legacy created_by column)');
 }
 
-// Repair pass: an earlier (buggy) attempt renamed shipments to shipments_legacy
-// and dropped it, leaving child tables with a dangling FK to a missing table.
-// Rebuild any child table whose FK target does not exist so they point at
-// shipments again. Safe to run on every boot (no-op when FKs are already clean).
+// Repair pass for dangling FKs
 function repairDanglingFks() {
   const existing = new Set(
     (db.prepare("SELECT name FROM sqlite_master WHERE type = 'table'").all() as { name: string }[]).map((r) => r.name)
@@ -231,14 +229,13 @@ function repairDanglingFks() {
 }
 repairDanglingFks();
 
-// Clean up any leftover legacy/repair tables from interrupted migrations.
+// Clean up leftover legacy tables
 for (const stale of ['shipments_legacy', 'shipments_new']) {
   if (db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?").get(stale)) {
     db.exec(`DROP TABLE IF EXISTS ${stale}`);
   }
 }
 
-// The old custom auth tables are replaced by Better Auth's user/session/account tables.
 const legacyAuthTables = ['admin_users', 'sessions'];
 for (const table of legacyAuthTables) {
   const found = db

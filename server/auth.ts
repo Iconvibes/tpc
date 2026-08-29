@@ -33,16 +33,17 @@ export const auth = betterAuth({
   },
   trustedOrigins: [
     // Dev: the Vite dev server (proxy target for /api/*).
+    // Prod: BETTER_AUTH_URL (e.g. https://your-project.vercel.app).
     process.env.BETTER_AUTH_URL || 'http://localhost:5173',
-    // Prod: the Express server serves both the site and the API on API_PORT.
+    // Local dev: Express server on API_PORT.
     ...(process.env.API_PORT ? [`http://localhost:${process.env.API_PORT}`] : [])
   ],
   advanced: {
     useSecureCookies: process.env.COOKIE_SECURE === 'true',
     ipAddress: {
-      // Render terminates TLS and sets X-Forwarded-For to the real client IP.
-      // Resolving it keeps the rate limiters per-IP — without it Better Auth
-      // falls back to a single shared bucket any attacker could exhaust.
+      // Vercel (and Render) terminates TLS and sets X-Forwarded-For to the real
+      // client IP. Resolving it keeps the rate limiters per-IP — without it
+      // Better Auth falls back to a single shared bucket any attacker could exhaust.
       ipAddressHeaders: ['x-forwarded-for']
     }
   }
