@@ -4,14 +4,8 @@
   "buildCommand": "cd client && npx vite build",
   "outputDirectory": "client/dist",
   "installCommand": "npm install",
-  "functions": {
-    "server/api.ts": {
-      "maxDuration": 30,
-      "includeFiles": "server/**"
-    }
-  },
   "rewrites": [
-    { "source": "/api/:path*", "destination": "/server/api.ts" },
+    { "source": "/api/:path*", "destination": "/api/index" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }
