@@ -385,10 +385,10 @@ export async function seedAdmin(): Promise<void> {
 // Resolve client/dist for both layouts: dev (server/app.ts) and compiled
 // (server/dist/app.js) — the naive ../client/dist breaks under the latter.
 const dist = [
-  join(__dirname, '..', '..', 'dist'),          // root dist/ from compiled server/dist/
-  join(__dirname, '..', 'dist'),                 // root dist/ from source server/
   join(__dirname, '..', '..', 'client', 'dist'), // client/dist/ from compiled server/dist/
-  join(__dirname, '..', 'client', 'dist')         // client/dist/ from source server/
+  join(__dirname, '..', 'client', 'dist'),        // client/dist/ from source server/
+  join(__dirname, '..', '..', 'dist'),             // root dist/ from compiled server/dist/
+  join(__dirname, '..', 'dist')                    // root dist/ from source server/
 ].find((candidate) => existsSync(candidate));
 if (dist) {
   app.use(express.static(dist));
