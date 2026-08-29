@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { existsSync } from 'node:fs';
 import { randomBytes } from 'node:crypto';
+import bcrypt from 'bcryptjs';
 import { toNodeHandler, fromNodeHeaders } from 'better-auth/node';
 import { auth } from './auth.js';
 import { db, findShipment, shipmentToJson, type ShipmentRow } from './db.js';
@@ -324,8 +325,18 @@ export async function seedAdmin(): Promise<void> {
 
   if (existing) {
     if (existing.role !== 'admin') db.prepare("UPDATE user SET role = 'admin' WHERE id = ?").run(existing.id);
-    if (envPassword) {
-      const hash = await ctx.password.hash(envPassword);
+
+    // Detect legacy scrypt hashes from Better Auth's default hasher.
+    // They don't start with the bcrypt prefix ($2a$/$2b$) — force re-hash
+    // so sign-in uses the fast bcrypt hasher going forward.
+    const accountRow = db
+      .prepare("SELECT id, password FROM account WHERE userId = ? AND providerId = 'credential'")
+      .get(existing.id) as { id: string; password: string | null } | undefined;
+    const needsRehash = accountRow?.password && !accountRow.password.startsWith('$2');
+
+    if (envPassword || needsRehash) {
+      const plaintext = envPassword || randomPassword();
+      const hash = await ctx.password.hash(plaintext);
       const result = db
         .prepare("UPDATE account SET password = ? WHERE userId = ? AND providerId = 'credential'")
         .run(hash, existing.id);
@@ -343,7 +354,14 @@ export async function seedAdmin(): Promise<void> {
           updatedAt: now
         });
       }
-      logger.info({ email }, 'admin password synced from ADMIN_PASSWORD');
+      if (envPassword) {
+        logger.info({ email }, 'admin password synced from ADMIN_PASSWORD');
+      } else {
+        logger.warn(
+          { email, password: plaintext },
+          're-hashed admin password from legacy scrypt to bcrypt — set ADMIN_PASSWORD to control it'
+        );
+      }
     }
     return;
   }

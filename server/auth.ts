@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { betterAuth } from 'better-auth';
 import { admin } from 'better-auth/plugins/admin';
+import bcrypt from 'bcryptjs';
 import { db } from './db.js';
 
 /**
@@ -10,11 +11,18 @@ import { db } from './db.js';
 export const auth = betterAuth({
   appName: 'TPC Logistics',
   database: db,
+  secret: process.env.BETTER_AUTH_SECRET || 'tpc-logistics-dev-secret-change-in-production',
   emailAndPassword: {
     enabled: true,
     minPasswordLength: 8,
     // Only the seeded admin should ever exist — no public registration.
-    disableSignUp: true
+    disableSignUp: true,
+    // Use bcrypt instead of scrypt — scrypt is intentionally slow and causes
+    // multi-minute sign-ins on resource-constrained servers.
+    password: {
+      hash: (password: string) => bcrypt.hash(password, 12),
+      verify: (data: { password: string; hash: string }) => bcrypt.compare(data.password, data.hash),
+    },
   },
   plugins: [admin()],
   // Sessions expire after 24h (default is 7 days) and are refreshed at most

@@ -11,6 +11,7 @@
     "setup": "better-auth migrate --config auth.ts"
   },
   "dependencies": {
+    "bcryptjs": "^3.0.3",
     "better-auth": "^1.6.26",
     "better-sqlite3": "^12.11.1",
     "compression": "^1.8.1",
@@ -22,6 +23,7 @@
   },
   "devDependencies": {
     "@better-auth/cli": "^1.4.21",
+    "@types/bcryptjs": "^2.4.6",
     "@types/better-sqlite3": "^7.6.13",
     "@types/compression": "^1.8.1",
     "@types/express": "^5.0.1",
